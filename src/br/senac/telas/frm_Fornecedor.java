@@ -5,14 +5,18 @@
  */
 package br.senac.telas;
 
+import br.senac.conexaoBD.Conexao;
 import java.awt.Image;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
@@ -26,7 +30,6 @@ public class frm_Fornecedor extends javax.swing.JFrame {
     PreparedStatement ps = null;//prepara a consulta para fornecer parametros
     ResultSet rs = null;
     String status;
-
     File f = null;
     String local = null;
     private ImageIcon format = null;
@@ -34,12 +37,16 @@ public class frm_Fornecedor extends javax.swing.JFrame {
     int s = 0;
     byte[] pImage = null;
 
-    /**
-     * Creates new form frm_Fornecedor
-     */
+    //buscar o cep
+    String logradouro;
+    String bairro;
+    String cidade;
+    String uf;
+
     public frm_Fornecedor() {
 
         initComponents();
+        conexao = Conexao.Conector();
     }
 
     public void carregaDadosFornecedor() {
@@ -53,11 +60,133 @@ public class frm_Fornecedor extends javax.swing.JFrame {
         }
     }
 
+    public void buscarCep(String cep) {
+        String json;
+
+        try {
+            URL url = new URL("http://viacep.com.br/ws/" + cep + "/json");
+            URLConnection urlConnection = url.openConnection();
+            InputStream is = urlConnection.getInputStream();
+            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+
+            StringBuilder jsonSb = new StringBuilder();
+
+            br.lines().forEach(l -> jsonSb.append(l.trim()));
+            json = jsonSb.toString();
+
+            // JOptionPane.showMessageDialog(null, json);
+            json = json.replaceAll("[{},:]", "");
+            json = json.replaceAll("\"", "\n");
+            String array[] = new String[30];
+            array = json.split("\n");
+
+            // JOptionPane.showMessageDialog(null, array);
+            logradouro = array[7];
+            bairro = array[15];
+            cidade = array[19];
+            uf = array[23];
+
+            txtEndereco.setText(logradouro);
+            txtBairro.setText(bairro);
+            txtCidade.setText(cidade);
+            //cbUf.getSelectedIndex();
+
+            switch (uf) {
+                case "AC":
+                    cbuf.setSelectedIndex(0);
+                    break;
+                case "AM":
+                    cbuf.setSelectedIndex(1);
+                    break;
+                case "RR":
+                    cbuf.setSelectedIndex(2);
+                    break;
+                case "PA":
+                    cbuf.setSelectedIndex(3);
+                    break;
+                case "AP":
+                    cbuf.setSelectedIndex(4);
+                    break;
+                case "TO":
+                    cbuf.setSelectedIndex(5);
+                    break;
+                case "MA":
+                    cbuf.setSelectedIndex(6);
+                    break;
+                case "PI":
+                    cbuf.setSelectedIndex(7);
+                    break;
+                case "CE":
+                    cbuf.setSelectedIndex(8);
+                    break;
+                case "RN":
+                    cbuf.setSelectedIndex(9);
+                    break;
+                case "PB":
+                    cbuf.setSelectedIndex(10);
+                    break;
+                case "PE":
+                    cbuf.setSelectedIndex(11);
+                    break;
+                case "AL":
+                    cbuf.setSelectedIndex(12);
+                    break;
+                case "SE":
+                    cbuf.setSelectedIndex(13);
+                    break;
+                case "BA":
+                    cbuf.setSelectedIndex(14);
+                    break;
+                case "MG":
+                    cbuf.setSelectedIndex(15);
+                    break;
+                case "ES":
+                    cbuf.setSelectedIndex(16);
+                    break;
+                case "RJ":
+                    cbuf.setSelectedIndex(17);
+                    break;
+                case "SP":
+                    cbuf.setSelectedIndex(18);
+                case "PR":
+                    cbuf.setSelectedIndex(19);
+                    break;
+                case "SC":
+                    cbuf.setSelectedIndex(20);
+                    break;
+                case "RS":
+                    cbuf.setSelectedIndex(21);
+                    break;
+                case "MS":
+                    cbuf.setSelectedIndex(22);
+                    break;
+                case "MT":
+                    cbuf.setSelectedIndex(23);
+                    break;
+                case "GO":
+                    cbuf.setSelectedIndex(24);
+                    break;
+                case "DF":
+                    cbuf.setSelectedIndex(25);
+                    break;
+
+                default:
+                    cbuf.setSelectedIndex(-1);
+                    break;
+                //JOptionPane.showMessageDialog(null, logradouro + " " + bairro + " " + cidade + " " + uf);
+            }
+            //JOptionPane.showMessageDialog(null, logradouro + " " + bairro + " " + cidade + " " + uf);
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private void adicionar() {
 
         File f = new File(status);
 
-        String sql = "insert into fonecedor ( nome_fantasia, razao_social,foto,CEP,endereco,numero,complemento,bairro,cidade,uf,situacao,data_inicio,data_fim)values(?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String sql = "insert into fonecedor ( nome_fantasia, razao_social, foto, CEP, endereco, numero, complemento, bairro, cidade, uf, situacao, data_inicio, data_fim)values(?,?,?,?,?,?,?,?,?,?,?,?,?)";
         try {
             InputStream foto = new FileInputStream(f);
             ps = conexao.prepareStatement(sql);
@@ -70,7 +199,7 @@ public class frm_Fornecedor extends javax.swing.JFrame {
             ps.setString(7, txtComplemento.getText());
             ps.setString(8, txtBairro.getText());
             ps.setString(9, txtCidade.getText());
-            ps.setString(10, cbUF.getSelectedItem().toString());
+            ps.setString(10, cbuf.getSelectedItem().toString());
             ps.setString(11, status);
             ps.setString(12, ((JTextField) dtInicio.getDateEditor().getUiComponent()).getText());
             ps.setString(13, ((JTextField) dtFim.getDateEditor().getUiComponent()).getText());
@@ -128,7 +257,7 @@ public class frm_Fornecedor extends javax.swing.JFrame {
         txtCidade = new javax.swing.JTextField();
         txtNumero = new javax.swing.JTextField();
         txtBairro = new javax.swing.JTextField();
-        cbUF = new javax.swing.JComboBox<>();
+        cbuf = new javax.swing.JComboBox<>();
         dtFim = new com.toedter.calendar.JDateChooser();
         dtInicio = new com.toedter.calendar.JDateChooser();
         btnCarregar = new javax.swing.JToggleButton();
@@ -153,6 +282,11 @@ public class frm_Fornecedor extends javax.swing.JFrame {
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Tela de Fornecedores");
         setResizable(false);
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowOpened(java.awt.event.WindowEvent evt) {
+                formWindowOpened(evt);
+            }
+        });
 
         jLabel1.setText("ID:");
 
@@ -210,6 +344,11 @@ public class frm_Fornecedor extends javax.swing.JFrame {
         jLabel14.setText("DATA FIM:");
 
         btnAdicionar.setText("ADICIONAR");
+        btnAdicionar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnAdicionarActionPerformed(evt);
+            }
+        });
 
         btnPesquisar.setText("PESQUISAR");
 
@@ -219,6 +358,17 @@ public class frm_Fornecedor extends javax.swing.JFrame {
 
         lblFoto.setBackground(new java.awt.Color(255, 255, 255));
         lblFoto.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+
+        txtCEP.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                txtCEPActionPerformed(evt);
+            }
+        });
+        txtCEP.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                txtCEPKeyReleased(evt);
+            }
+        });
 
         txtNumero.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -232,7 +382,12 @@ public class frm_Fornecedor extends javax.swing.JFrame {
             }
         });
 
-        cbUF.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "AC", "AM", "RR", "PA", "AP", "TO", "MA", "PI", "CE", "RN", "PB", "PE", "AL", "SE", "BA", "MG", "ES", "RJ", "SP", "PR", "SC", "RS", "MS", "MT", "GO", "DF" }));
+        cbuf.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "AC", "AM", "RR", "PA", "AP", "TO", "MA", "PI", "CE", "RN", "PB", "PE", "AL", "SE", "BA", "MG", "ES", "RJ", "SP", "PR", "SC", "RS", "MS", "MT", "GO", "DF" }));
+        cbuf.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                cbufKeyReleased(evt);
+            }
+        });
 
         btnCarregar.setText("Carregar");
         btnCarregar.addActionListener(new java.awt.event.ActionListener() {
@@ -252,16 +407,17 @@ public class frm_Fornecedor extends javax.swing.JFrame {
 
         tbLista.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {},
-                {},
-                {},
-                {}
+
             },
             new String [] {
-
+                "nome"
             }
         ));
+        tbLista.getTableHeader().setReorderingAllowed(false);
         jScrollPane1.setViewportView(tbLista);
+        if (tbLista.getColumnModel().getColumnCount() > 0) {
+            tbLista.getColumnModel().getColumn(0).setResizable(false);
+        }
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -308,7 +464,7 @@ public class frm_Fornecedor extends javax.swing.JFrame {
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                     .addComponent(txtBairro, javax.swing.GroupLayout.PREFERRED_SIZE, 175, javax.swing.GroupLayout.PREFERRED_SIZE)
                                     .addComponent(txtNumero, javax.swing.GroupLayout.PREFERRED_SIZE, 175, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(cbUF, javax.swing.GroupLayout.PREFERRED_SIZE, 51, javax.swing.GroupLayout.PREFERRED_SIZE)))))
+                                    .addComponent(cbuf, javax.swing.GroupLayout.PREFERRED_SIZE, 51, javax.swing.GroupLayout.PREFERRED_SIZE)))))
                     .addGroup(layout.createSequentialGroup()
                         .addGap(67, 67, 67)
                         .addComponent(btnAdicionar)
@@ -386,7 +542,7 @@ public class frm_Fornecedor extends javax.swing.JFrame {
                     .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                         .addComponent(txtCaminho, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addComponent(jLabel16)))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 39, Short.MAX_VALUE)
                 .addComponent(jLabel6)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
@@ -417,7 +573,7 @@ public class frm_Fornecedor extends javax.swing.JFrame {
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(jLabel13)
-                            .addComponent(cbUF, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                            .addComponent(cbuf, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel14, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -436,7 +592,7 @@ public class frm_Fornecedor extends javax.swing.JFrame {
                 .addGap(25, 25, 25))
         );
 
-        pack();
+        setSize(new java.awt.Dimension(606, 669));
         setLocationRelativeTo(null);
     }// </editor-fold>//GEN-END:initComponents
 
@@ -486,6 +642,33 @@ public class frm_Fornecedor extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_txtCaminhoActionPerformed
 
+    private void formWindowOpened(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowOpened
+        carregaDadosFornecedor();
+    }//GEN-LAST:event_formWindowOpened
+
+    private void btnAdicionarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAdicionarActionPerformed
+        adicionar();
+    }//GEN-LAST:event_btnAdicionarActionPerformed
+
+    private void cbufKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_cbufKeyReleased
+        txtEndereco.setText("Pesquisando...");
+        if (txtCEP.getText().length() == 8) {
+            buscarCep(txtCEP.getText());
+
+        }
+    }//GEN-LAST:event_cbufKeyReleased
+
+    private void txtCEPActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtCEPActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txtCEPActionPerformed
+
+    private void txtCEPKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtCEPKeyReleased
+        txtEndereco.setText("Aguarde...");
+        if (txtCEP.getText().length() == 8) {
+            buscarCep(txtCEP.getText());
+        }
+    }//GEN-LAST:event_txtCEPKeyReleased
+
     /**
      * @param args the command line arguments
      */
@@ -528,7 +711,7 @@ public class frm_Fornecedor extends javax.swing.JFrame {
     private javax.swing.JToggleButton btnPesquisar;
     private javax.swing.JToggleButton btnRemover;
     private javax.swing.ButtonGroup buttonGroup1;
-    private javax.swing.JComboBox<String> cbUF;
+    private javax.swing.JComboBox<String> cbuf;
     private com.toedter.calendar.JDateChooser dtFim;
     private com.toedter.calendar.JDateChooser dtInicio;
     private com.toedter.calendar.JDayChooser jDayChooser1;
